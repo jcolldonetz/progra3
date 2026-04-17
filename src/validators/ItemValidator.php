@@ -6,32 +6,35 @@ class ItemValidator
     /**
      * Valida los datos para la creación de un item
      * 
-     * @param array $data Array con los datos 'name' y 'qty'
+     * @param array $data Array con los datos 'name', 'qty' y 'price'
      * @return array Array asociativo con 'valid' (bool) y 'errors' (array)
      */
     public static function validateCreate(array $data): array
     {
         $errors = [];
-        
         // Extraer y sanitizar datos
         $name = $data['name'] ?? '';
         $qty = $data['qty'] ?? 0;
+        $price = $data['price'] ?? 0;
         
         // Sanitizar inputs
         $name = trim($name);
         $qty = (int)trim((string)$qty);
+        $price = (float)trim((string)$price);
         $name = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
         
         // Aplicar reglas de validación
         $errors = self::validateName($name, $errors);
         $errors = self::validateQuantity($qty, $errors);
+        $errors = self::validatePrice($price, $errors);
         
         return [
             'valid' => empty($errors),
             'errors' => $errors,
             'data' => [
                 'name' => $name,
-                'qty' => $qty
+                'qty' => $qty,
+                'price' => $price
             ]
         ];
     }
@@ -54,8 +57,8 @@ class ItemValidator
             $errors['name'] = 'Name must be less than 50 characters';
         }
         
-        if (!preg_match('/^[a-zA-Z0-9\s]+$/', $name)) {
-            $errors['name'] = 'Name can only contain letters, numbers and spaces';
+        if (!preg_match('/^[a-zA-Z0-9\s.]+$/', $name)) {
+            $errors['name'] = 'Name can only contain letters, numbers, dot and spaces';
         }
         
         return $errors;
@@ -77,6 +80,33 @@ class ItemValidator
         
         if ($qty > 1000) {
             $errors['qty'] = 'Quantity must be less than 1000';
+        }
+        
+        return $errors;
+    }
+    
+    /**
+     * Valida el campo price (precio)
+     * 
+     * @param float $price
+     * @param array $errors
+     * @return array Errores actualizados
+     */
+    private static function validatePrice(float $price, array $errors): array
+    {
+        if ($price <= 0) {
+            $errors['price'] = 'Price must be greater than zero';
+            return $errors;
+        }
+        
+        if ($price > 99999999.99) {
+            $errors['price'] = 'Price must be less than 99999999.99';
+            return $errors;
+        }
+        
+        // Validar que tenga máximo 2 decimales
+        if (round($price, 2) != $price) {
+            $errors['price'] = 'Price can only have up to 2 decimal places';
         }
         
         return $errors;

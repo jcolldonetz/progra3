@@ -22,6 +22,10 @@
             <input type="number" name="qty" min="1" required>
         </label>
         
+        <label>Precio:
+            <input type="number" name="price" min="0.01" max="9999.99" step="0.01" required>
+        </label>
+        
         <button type="submit">Crear Item</button>
     </form>
 </body>
