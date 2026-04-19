@@ -36,7 +36,17 @@ class ItemAPIController
     public function store()
     {
         // Validar donde capturar los datos: puede ser JSON o form-urlencoded
-        $data = json_decode(file_get_contents('php://input'), true) ?? json_decode(json_encode($_POST), true);
+        $data = json_decode(file_get_contents('php://input'), true);
+
+        if(json_last_error() !== JSON_ERROR_NONE) {
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(400);
+            echo json_encode([
+                'ok' => false,
+                'error' => 'Invalid JSON input'
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+            return;
+        }
 
         $validation = ItemValidator::validateCreate($data);
 
