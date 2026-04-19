@@ -1,4 +1,6 @@
+# Activa el motor de reescritura de URL de Apache para que las reglas RewriteRule funcionen
 RewriteEngine On
+# Define la base de las URL reescritas para este proyecto en /progra3/
 RewriteBase /progra3/
 
 # Si entran a la base del proyecto, redirigir a /public/

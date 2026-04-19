@@ -29,6 +29,13 @@ Este proyecto es una pequeña API en PHP que gestiona un recurso `Item` usando r
 - JSON como formato principal de respuesta.
 - Formulario HTML simple en `src/views/items_form.php`.
 
-## Resumen
+## Reutilización
 
-En resumen, el proyecto es una API básica para crear y listar items, con validación de los datos de entrada y persistencia en base de datos mediante Eloquent.
+Las funciones de la API están diseñadas para ser reutilizables:
+
+- **Controlador modular**: `src/controllers/ItemAPIController.php` encapsula la lógica de negocio (obtener y crear items), permitiendo su uso en diferentes rutas o contextos sin duplicar código.
+- **Validación independiente**: `src/validators/ItemValidator.php` puede aplicarse a cualquier formulario o endpoint que maneje datos de items.
+- **Modelo Eloquent**: `src/models/Item.php` es reutilizable en cualquier parte de la aplicación para interactuar con la base de datos de items.
+- **Rutas flexibles**: Las rutas en `src/routes.php` pueden extenderse fácilmente para añadir nuevas funcionalidades (actualizar, eliminar items) reutilizando los mismos controladores y validadores.
+
+Esto facilita la expansión del proyecto y mantiene el código DRY (Don't Repeat Yourself).

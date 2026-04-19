@@ -57,8 +57,8 @@ class ItemValidator
             $errors['name'] = 'Name must be less than 50 characters';
         }
         
-        if (!preg_match('/^[a-zA-Z0-9\s.]+$/', $name)) {
-            $errors['name'] = 'Name can only contain letters, numbers, dot and spaces';
+        if (!preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s.]+$/u', $name)) {
+            $errors['name'] = 'Name can only contain letters (including accents), numbers, dot and spaces';
         }
         
         return $errors;
