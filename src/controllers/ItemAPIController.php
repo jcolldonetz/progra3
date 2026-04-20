@@ -7,12 +7,19 @@ class ItemAPIController
 {
     /**
      * Obtener lista de items
-     * GET /items
+     * GET /api/items?q=texto
      */
     public function index()
     {
         try {
-            $items = Item::all();
+            $filter = trim((string)($_GET['q'] ?? ''));
+            $query = Item::query();
+
+            if ($filter !== '') {
+                $query->where('name', 'LIKE', '%' . $filter . '%');
+            }
+
+            $items = $query->get();
             header('Content-Type: application/json; charset=utf-8');
             http_response_code(200);
             echo json_encode([

@@ -21,6 +21,14 @@
  
  <div id="errors" style="display:none; color:red;"></div>
  
+ <form id="search-form" style="margin-bottom: 20px;">
+    <label>Buscar por nombre:
+        <input type="text" name="q" placeholder="Texto que debe contener el nombre">
+    </label>
+    <button type="submit">Buscar</button>
+ </form>
+ 
+ <div id="status" style="display:none; margin-bottom: 15px; color:#333; font-weight:bold;"></div>
  <div id="items-list"></div>
  
  <form id="create-form">
@@ -39,9 +47,17 @@
 
  <script>
     // Función para cargar la lista de items
-    async function loadItems() {
+    async function loadItems(query = '') {
+        const statusDiv = document.getElementById('status');
+        statusDiv.textContent = 'Buscando items...';
+        statusDiv.style.display = 'block';
+        //Esperar 2 segundos paara visualizar el mensaje de búsqueda
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
         try {
-            const response = await fetch('api/items');
+            const url = query ? `api/items?q=${encodeURIComponent(query.toLowerCase())}` : 'api/items';
+            const response = await fetch(url);
+
             console.log('Respuesta del servidor:', response);
             const data = await response.json();
             console.log('Items cargados:', data);
@@ -52,6 +68,9 @@
             }
         } catch (error) {
             console.error('Error al cargar los items:', error);
+            showErrors([error.message]);
+        } finally {
+            statusDiv.style.display = 'none';
         }
     }
 
@@ -59,7 +78,7 @@
         const container = document.getElementById('items-list');
     
         if (items.length === 0) {
-            container.innerHTML = '<p>No hay items</p>';
+            container.innerHTML = '<p>No se encontraron items para la búsqueda</p>';
             return;
         }
         
@@ -92,6 +111,14 @@
         
         container.innerHTML = html;
     };
+
+    document.getElementById('search-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        document.getElementById('errors').style.display = 'none';
+
+        const query = new FormData(e.target).get('q') || '';
+        loadItems(query.trim());
+    });
 
     // Manejar el envío del formulario de creación
     document.getElementById('create-form').addEventListener('submit', async (e) => {
