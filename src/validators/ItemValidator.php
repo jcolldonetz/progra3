@@ -49,16 +49,16 @@ class ItemValidator
     private static function validateName(string $name, array $errors): array
     {
         if ($name === '') {
-            $errors['name'] = 'Name is required';
+            $errors['name'] = 'El nombre es obligatorio';
             return $errors;
         }
         
         if (strlen($name) > 50) {
-            $errors['name'] = 'Name must be less than 50 characters';
+            $errors['name'] = 'El nombre debe tener menos de 50 caracteres';
         }
         
         if (!preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s.]+$/u', $name)) {
-            $errors['name'] = 'Name can only contain letters (including accents), numbers, dot and spaces';
+            $errors['name'] = 'El nombre solo puede contener letras (incluyendo acentos), números, punto y espacio y espacios';
         }
         
         return $errors;
@@ -74,12 +74,12 @@ class ItemValidator
     private static function validateQuantity(int $qty, array $errors): array
     {
         if ($qty <= 0) {
-            $errors['qty'] = 'Quantity must be greater than zero';
+            $errors['qty'] = 'La cantidad debe ser mayor que cero';
             return $errors;
         }
         
         if ($qty > 1000) {
-            $errors['qty'] = 'Quantity must be less than 1000';
+            $errors['qty'] = 'La cantidad debe ser menor que que 1000';
         }
         
         return $errors;
@@ -95,18 +95,18 @@ class ItemValidator
     private static function validatePrice(float $price, array $errors): array
     {
         if ($price <= 0) {
-            $errors['price'] = 'Price must be greater than zero';
+            $errors['price'] = 'El precio debe ser mayor que cero';
             return $errors;
         }
         
         if ($price > 99999999.99) {
-            $errors['price'] = 'Price must be less than 99999999.99';
+            $errors['price'] = 'El precio debe ser menor que 99999999.99';
             return $errors;
         }
         
         // Validar que tenga máximo 2 decimales
         if (round($price, 2) != $price) {
-            $errors['price'] = 'Price can only have up to 2 decimal places';
+            $errors['price'] = 'El precio solo puede tener hasta 2 lugares decimales';
         }
         
         return $errors;
