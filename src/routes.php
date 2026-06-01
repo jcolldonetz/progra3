@@ -34,25 +34,85 @@
     }
 
     // Ruta para mostrar la lista de items
-    if ($method === 'GET' && $path === '/items') {
+    elseif ($method === 'GET' && $path === '/items') {
         // Mostrar la lista de items en HTML
         require __DIR__ . '/views/items_ui.html';
         exit;
     }
     
     // Devolver lista de items (ejemplo simple, sin paginación ni filtros)
-    if ($method === 'GET' && $path === '/api/items') {
+    elseif ($method === 'GET' && $path === '/api/items') {
         $controller = new ItemAPIController();
         $controller->index();
         exit;
     }
+    // Obtener un item por ID
+    elseif ($method === 'GET' && preg_match('#^/api/items/(\d+)$#', $path, $matches)) {
+        $controller = new ItemAPIController();
+        $controller->show((int)$matches[1]);
+        exit;
+    }
 
+    // Actualizar un item
+    elseif ($method === 'PUT' && preg_match('#^/api/items/(\d+)$#', $path, $matches)) {
+        $controller = new ItemAPIController();
+        $controller->update((int)$matches[1]);
+        exit;
+    }
+
+    // Eliminar un item
+    elseif ($method === 'DELETE' && preg_match('#^/api/items/(\d+)$#', $path, $matches)) {
+        $controller = new ItemAPIController();
+        $controller->destroy((int)$matches[1]);
+        exit;
+    }
     // Captura de submit de form de items
-    if ($method === 'POST' && $path === '/api/items') {
+    elseif ($method === 'POST' && $path === '/api/items') {
         $controller = new ItemAPIController();
         $controller->store();
         exit;
     }
+
+    // Demostrar manejo de sesión
+    elseif ($method === 'GET' && $path === '/session') {
+        require_once __DIR__ . '/../src/Session.php';
+        
+        // Regenerar sesión para evitar colisiones con otras sesiones (opcional)
+        Session::regenerate();
+        
+        //var_dump(session_status());
+        // var_dump($_SESSION);
+        Session::start();
+        // var_dump(session_status());
+        // Session::destroy();
+        // var_dump(session_status());
+        // var_dump($_SESSION);
+        // Session::start();
+        // var_dump($_SESSION);
+        Session::set('test', 'Hello, Session!');
+        //Session::set('user', 'Javi');
+        var_dump($_SESSION);
+        // Session::clear('test');
+        // var_dump($_SESSION);
+
+        // Session::destroy();
+        // var_dump($_SESSION);
+    }
+
+    // Demostrar manejo de cookies
+    elseif ($method === 'GET' && $path === '/cookies') {
+        // Establecer una cookie de ejemplo
+        setcookie('test_cookie', 'Hello, Cookies!', time() + 3600, '/');
+        
+        // Mostrar las cookies recibidas
+        header('Content-Type: application/json; charset=utf-8');
+        http_response_code(200);
+        echo json_encode([
+            'cookies' => $_COOKIE
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
 
     // No encontrada
     header('Content-Type: application/json; charset=utf-8');

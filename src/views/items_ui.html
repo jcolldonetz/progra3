@@ -9,6 +9,8 @@
     input { width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px; }
     button { margin-top: 20px; padding: 10px 20px; background: #87ADFD; color: white; border: none; border-radius: 4px; cursor: pointer; }
     button:hover { background: #AAE4FE; }
+    .btn-edit { background-color: #ffc107; color: black; padding: 4px 8px; margin-right: 5px; font-size: 0.8em; }
+    .btn-delete { background-color: #dc3545; color: white; padding: 4px 8px; font-size: 0.8em; }
     table { width: 100%; border-collapse: collapse; margin-top: 20px; }
     th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
     th { background-color: #f2f2f2; }
@@ -31,6 +33,7 @@
  <div id="status" style="display:none; margin-bottom: 15px; color:#333; font-weight:bold;"></div>
  <div id="items-list"></div>
  
+ <h2 id="form-title" style="margin-top: 40px;">Crear Nuevo Item</h2>
  <form id="create-form">
  <label>Nombre del Item:
     <input type="text" name="name" required>
@@ -46,6 +49,8 @@
  </form>
 
  <script>
+    let editingItemId = null;
+
     // Función para cargar la lista de items
     async function loadItems(query = '') {
         const statusDiv = document.getElementById('status');
@@ -89,20 +94,22 @@
         html += '<th>Nombre</th>';
         html += '<th>Cantidad</th>';
         html += '<th>Precio</th>';
-        //html += '<th>Creado</th>';
-        //html += '<th>Actualizado</th>';
+        html += '<th>Acciones</th>';
         html += '</tr>';
         html += '</thead>';
         html += '<tbody>';
         
         items.forEach(item => {
+            const escapedName = item.name.replace(/'/g, "\\'");
             html += '<tr>';
             html += `<td>${item.id}</td>`;
             html += `<td>${item.name}</td>`;
             html += `<td>${item.qty}</td>`;
             html += `<td>${item.price}</td>`;
-            //html += `<td>${item.created_at}</td>`;
-            //html += `<td>${item.updated_at}</td>`;
+            html += `<td>
+                <button class="btn-edit" onclick="prepareEdit(${item.id}, '${escapedName}', ${item.qty}, ${item.price})">Editar</button>
+                <button class="btn-delete" onclick="deleteItem(${item.id})">Eliminar</button>
+            </td>`;
             html += '</tr>';
         });
         
@@ -110,6 +117,48 @@
         html += '</table>';
         
         container.innerHTML = html;
+    };
+
+    // Función para cargar datos en el formulario y entrar en modo edición
+    window.prepareEdit = function(id, name, qty, price) {
+        editingItemId = id;
+        document.getElementById('form-title').textContent = 'Editar Item #' + id;
+        const form = document.getElementById('create-form');
+        form.querySelector('[name="name"]').value = name;
+        form.querySelector('[name="qty"]').value = qty;
+        form.querySelector('[name="price"]').value = price;
+        form.querySelector('button[type="submit"]').textContent = 'Actualizar Item';
+        
+        if (!document.getElementById('btn-cancel')) {
+            const cancelBtn = document.createElement('button');
+            cancelBtn.id = 'btn-cancel';
+            cancelBtn.type = 'button';
+            cancelBtn.textContent = 'Cancelar';
+            cancelBtn.style.marginLeft = '10px';
+            cancelBtn.style.backgroundColor = '#6c757d';
+            cancelBtn.onclick = resetForm;
+            form.appendChild(cancelBtn);
+        }
+        form.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    window.resetForm = function() {
+        editingItemId = null;
+        document.getElementById('form-title').textContent = 'Crear Nuevo Item';
+        const form = document.getElementById('create-form');
+        form.reset();
+        form.querySelector('button[type="submit"]').textContent = 'Crear Item';
+        const cancelBtn = document.getElementById('btn-cancel');
+        if (cancelBtn) cancelBtn.remove();
+    };
+
+    window.deleteItem = async function(id) {
+        if (!confirm('¿Está seguro de que desea eliminar este item?')) return;
+        try {
+            const response = await fetch(`api/items/${id}`, { method: 'DELETE' });
+            const data = await response.json();
+            if (data.ok) { loadItems(); } else { showErrors([data.error]); }
+        } catch (error) { showErrors([error.message]); }
     };
 
     document.getElementById('search-form').addEventListener('submit', async (e) => {
@@ -120,7 +169,7 @@
         loadItems(query.trim());
     });
 
-    // Manejar el envío del formulario de creación
+    // Manejar el envío del formulario (POST para crear, PUT para editar)
     document.getElementById('create-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         // Ocultar errores anteriores
@@ -133,9 +182,12 @@
             price: parseFloat(formData.get('price'))
         };
 
+        const url = editingItemId ? `api/items/${editingItemId}` : 'api/items';
+        const method = editingItemId ? 'PUT' : 'POST';
+
         try {
-            const response = await fetch('api/items', {
-                method: 'POST',
+            const response = await fetch(url, {
+                method: method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
@@ -143,9 +195,8 @@
             const responseData = await response.json();
             
             if (response.ok && responseData.ok) {
-                e.target.reset();
+                resetForm();
                 loadItems();
-                alert('Item creado exitosamente');
             } else {
                 showErrors(responseData.errors || ['Error al crear el item']);
                 return;
