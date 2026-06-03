@@ -13,10 +13,15 @@ class ItemAPIController
     {
         try {
             $filter = trim((string)($_GET['q'] ?? ''));
+            $categoryId = $_GET['category_id'] ?? '';
+
             $query = Item::query();
 
             if ($filter !== '') {
                 $query->where('name', 'LIKE', '%' . $filter . '%');
+            }
+            if ($categoryId !== '') {
+                $query->where('category_id', $categoryId);
             }
 
             $items = $query->get();
@@ -58,8 +63,10 @@ class ItemAPIController
         $validation = ItemValidator::validateCreate($data);
 
         if (!$validation['valid']) {
+            // 422 si el error es por clave foránea (category_id), 400 para el resto
+            $statusCode = isset($validation['errors']['category_id']) ? 422 : 400;
             header('Content-Type: application/json; charset=utf-8');
-            http_response_code(400);
+            http_response_code($statusCode);
             echo json_encode([
                 'ok' => false,
                 'errors' => $validation['errors']
@@ -90,6 +97,7 @@ class ItemAPIController
                 'name' => $item->name,
                 'qty' => $item->qty,
                 'price' => $item->price,
+                'category_id' => $item->category_id,
                 'created_at' => $item->created_at->format('Y-m-d H:i:s'),
                 'updated_at' => $item->updated_at->format('Y-m-d H:i:s')
             ]
@@ -163,8 +171,10 @@ class ItemAPIController
 
             $validation = ItemValidator::validateCreate($data);
             if (!$validation['valid']) {
+                // 422 si el error es por clave foránea (category_id), 400 para el resto
+                $statusCode = isset($validation['errors']['category_id']) ? 422 : 400;
                 header('Content-Type: application/json; charset=utf-8');
-                http_response_code(400);
+                http_response_code($statusCode);
                 echo json_encode([
                     'ok' => false,
                     'errors' => $validation['errors']

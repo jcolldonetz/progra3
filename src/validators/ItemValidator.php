@@ -1,12 +1,14 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/../models/Category.php';
+
 class ItemValidator
 {
     /**
      * Valida los datos para la creación de un item
      * 
-     * @param array $data Array con los datos 'name', 'qty' y 'price'
+     * @param array $data Array con los datos 'name', 'qty', 'price' y opcionalmente 'category_id'
      * @return array Array asociativo con 'valid' (bool) y 'errors' (array)
      */
     public static function validateCreate(array $data): array
@@ -16,17 +18,22 @@ class ItemValidator
         $name = $data['name'] ?? '';
         $qty = $data['qty'] ?? 0;
         $price = $data['price'] ?? 0;
+        $categoryId = $data['category_id'] ?? null;
         
         // Sanitizar inputs
         $name = trim($name);
         $qty = (int)trim((string)$qty);
         $price = (float)trim((string)$price);
         $name = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+
+        // Normalizar category_id: si viene vacío o no viene, es null
+        $categoryId = ($categoryId !== null && $categoryId !== '') ? (int)$categoryId : null;
         
         // Aplicar reglas de validación
         $errors = self::validateName($name, $errors);
         $errors = self::validateQuantity($qty, $errors);
         $errors = self::validatePrice($price, $errors);
+        $errors = self::validateCategoryId($categoryId, $errors);
         
         return [
             'valid' => empty($errors),
@@ -34,7 +41,8 @@ class ItemValidator
             'data' => [
                 'name' => $name,
                 'qty' => $qty,
-                'price' => $price
+                'price' => $price,
+                'category_id' => $categoryId
             ]
         ];
     }
@@ -107,6 +115,24 @@ class ItemValidator
         // Validar que tenga máximo 2 decimales
         if (round($price, 2) != $price) {
             $errors['price'] = 'El precio solo puede tener hasta 2 lugares decimales';
+        }
+        
+        return $errors;
+    }
+
+    /**
+     * Valida que el category_id, si se proporciona, exista en la base de datos
+     * 
+     * @param int|null $categoryId
+     * @param array $errors
+     * @return array Errores actualizados
+     */
+    private static function validateCategoryId(?int $categoryId, array $errors): array
+    {
+        if ($categoryId !== null) {
+            if (!Category::find($categoryId)) {
+                $errors['category_id'] = 'La categoría seleccionada no es válida';
+            }
         }
         
         return $errors;

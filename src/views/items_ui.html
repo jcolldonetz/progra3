@@ -7,6 +7,7 @@
     body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
     label { display: block; margin-top: 15px; font-weight: bold; }
     input { width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px; }
+    select { width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px; }
     button { margin-top: 20px; padding: 10px 20px; background: #87ADFD; color: white; border: none; border-radius: 4px; cursor: pointer; }
     button:hover { background: #AAE4FE; }
     .btn-edit { background-color: #ffc107; color: black; padding: 4px 8px; margin-right: 5px; font-size: 0.8em; }
@@ -16,17 +17,29 @@
     th { background-color: #f2f2f2; }
     tr:nth-child(even) { background-color: #f9f9f9; }
     tr:hover { background-color: #f5f5f5; }
-</style>
+    .filter-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+ </style>
 </head>
 <body>
  <h1>Gestión de Items</h1>
  
+ <div style="margin-bottom: 20px;">
+    <a href="categories" style="display: inline-block; padding: 10px 20px; background: #6c757d; color: white; text-decoration: none; border-radius: 4px; cursor: pointer;">Gestionar Categorías</a>
+ </div>
+ 
  <div id="errors" style="display:none; color:red;"></div>
  
  <form id="search-form" style="margin-bottom: 20px;">
-    <label>Buscar por nombre:
-        <input type="text" name="q" placeholder="Texto que debe contener el nombre">
-    </label>
+    <div class="filter-row">
+        <label>Buscar por nombre:
+            <input type="text" name="q" placeholder="Texto que debe contener el nombre">
+        </label>
+        <label>Filtrar por categoría:
+            <select id="category-filter">
+                <option value="">- Sin filtro -</option>
+            </select>
+        </label>
+    </div>
     <button type="submit">Buscar</button>
  </form>
  
@@ -45,14 +58,54 @@
  <label>Precio:
     <input type="number" name="price" min="0.01" max="99999999.99" step="0.01" required>
 </label>
+ <label>Categoría:
+    <select name="category_id" id="item-category">
+        <option value="">-- Selecciona una categoría --</option>
+    </select>
+</label>
  <button type="submit">Crear Item</button>
  </form>
 
  <script>
     let editingItemId = null;
 
+    // Cargar categorías en los combos
+    async function loadCategories() {
+        try {
+            const response = await fetch('api/categories');
+            const data = await response.json();
+            const filterSelect = document.getElementById('category-filter');
+            const itemSelect = document.getElementById('item-category');
+            
+            if (data.ok && data.categories) {
+                data.categories.forEach(cat => {
+                    // Opción para el filtro
+                    const filterOption = document.createElement('option');
+                    filterOption.value = cat.id;
+                    filterOption.textContent = cat.name;
+                    filterSelect.appendChild(filterOption);
+                    
+                    // Opción para el formulario de items
+                    const itemOption = document.createElement('option');
+                    itemOption.value = cat.id;
+                    itemOption.textContent = cat.name;
+                    itemSelect.appendChild(itemOption);
+                });
+            }
+            
+            // Verificar si hay un parámetro category_id en la URL para pre-seleccionar el filtro
+            const urlParams = new URLSearchParams(window.location.search);
+            const categoryIdParam = urlParams.get('category_id');
+            if (categoryIdParam) {
+                filterSelect.value = categoryIdParam;
+            }
+        } catch (error) {
+            console.error('Error al cargar las categorías:', error);
+        }
+    }
+
     // Función para cargar la lista de items
-    async function loadItems(query = '') {
+    async function loadItems(query = '', categoryId = '') {
         const statusDiv = document.getElementById('status');
         statusDiv.textContent = 'Buscando items...';
         statusDiv.style.display = 'block';
@@ -60,7 +113,12 @@
         await new Promise(resolve => setTimeout(resolve, 2000));
 
         try {
-            const url = query ? `api/items?q=${encodeURIComponent(query.toLowerCase())}` : 'api/items';
+            let url = 'api/items';
+            const params = [];
+            if (query) params.push(`q=${encodeURIComponent(query.toLowerCase())}`);
+            if (categoryId) params.push(`category_id=${encodeURIComponent(categoryId)}`);
+            if (params.length > 0) url += '?' + params.join('&');
+            
             const response = await fetch(url);
 
             console.log('Respuesta del servidor:', response);
@@ -107,7 +165,7 @@
             html += `<td>${item.qty}</td>`;
             html += `<td>${item.price}</td>`;
             html += `<td>
-                <button class="btn-edit" onclick="prepareEdit(${item.id}, '${escapedName}', ${item.qty}, ${item.price})">Editar</button>
+                <button class="btn-edit" onclick="prepareEdit(${item.id}, '${escapedName}', ${item.qty}, ${item.price}, '${item.category_id || ''}')">Editar</button>
                 <button class="btn-delete" onclick="deleteItem(${item.id})">Eliminar</button>
             </td>`;
             html += '</tr>';
@@ -120,13 +178,14 @@
     };
 
     // Función para cargar datos en el formulario y entrar en modo edición
-    window.prepareEdit = function(id, name, qty, price) {
+    window.prepareEdit = function(id, name, qty, price, categoryId = '') {
         editingItemId = id;
         document.getElementById('form-title').textContent = 'Editar Item #' + id;
         const form = document.getElementById('create-form');
         form.querySelector('[name="name"]').value = name;
         form.querySelector('[name="qty"]').value = qty;
         form.querySelector('[name="price"]').value = price;
+        form.querySelector('[name="category_id"]').value = categoryId || '';
         form.querySelector('button[type="submit"]').textContent = 'Actualizar Item';
         
         if (!document.getElementById('btn-cancel')) {
@@ -166,7 +225,13 @@
         document.getElementById('errors').style.display = 'none';
 
         const query = new FormData(e.target).get('q') || '';
-        loadItems(query.trim());
+        const categoryId = document.getElementById('category-filter').value || '';
+        loadItems(query.trim(), categoryId);
+    });
+
+    // Evento para cambiar el filtro de categoría
+    document.getElementById('category-filter').addEventListener('change', () => {
+        document.getElementById('search-form').dispatchEvent(new Event('submit'));
     });
 
     // Manejar el envío del formulario (POST para crear, PUT para editar)
@@ -179,7 +244,8 @@
         const data = {
             name: formData.get('name'),
             qty: parseInt(formData.get('qty'), 10),
-            price: parseFloat(formData.get('price'))
+            price: parseFloat(formData.get('price')),
+            category_id: formData.get('category_id') || null
         };
 
         const url = editingItemId ? `api/items/${editingItemId}` : 'api/items';
@@ -224,8 +290,13 @@
         errorsDiv.style.display = 'block';
     }
 
-    // Cargar la lista de items al cargar la página
-    loadItems();
+    // Cargar las categorías al inicializar la página
+    loadCategories();
+    
+    // Cargar items con los parámetros de la URL si existen
+    const urlParams = new URLSearchParams(window.location.search);
+    const categoryIdParam = urlParams.get('category_id') || '';
+    loadItems('', categoryIdParam);
  </script>
 </body>
 </html>

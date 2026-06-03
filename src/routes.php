@@ -1,8 +1,12 @@
 <?php
     // Carga el archivo que define el modelo Item y sus métodos de acceso a datos.
-    include __DIR__ . '/models/item.php';
+    include __DIR__ . '/models/Item.php';
+    // Carga el modelo Category
+    include __DIR__ . '/models/Category.php';
     // Carga el controlador que contiene la lógica de negocio para las rutas de items.
     include __DIR__ . '/controllers/ItemAPIController.php';
+    // Carga el controlador de categorías
+    include __DIR__ . '/controllers/CategoryAPIController.php';
 
     // Definir las rutas de la API
     // Ruta de prueba
@@ -39,6 +43,13 @@
         require __DIR__ . '/views/items_ui.html';
         exit;
     }
+
+    // Ruta para mostrar la interfaz de categorías
+    elseif ($method === 'GET' && $path === '/categories') {
+        // Mostrar la lista de categorías en HTML
+        require __DIR__ . '/views/categories_ui.html';
+        exit;
+    }
     
     // Devolver lista de items (ejemplo simple, sin paginación ni filtros)
     elseif ($method === 'GET' && $path === '/api/items') {
@@ -66,6 +77,46 @@
         $controller->destroy((int)$matches[1]);
         exit;
     }
+
+    // --- RUTAS DE CATEGORÍAS ---
+    
+    // Obtener todas las categorías
+    elseif ($method === 'GET' && $path === '/api/categories') {
+        $controller = new CategoryAPIController();
+        $controller->index();
+        exit;
+    }
+    // Obtener ítems de una categoría (Ruta específica solicitada)
+    elseif ($method === 'GET' && preg_match('#^/api/categories/(\d+)/items$#', $path, $matches)) {
+        $controller = new CategoryAPIController();
+        $controller->getItems((int)$matches[1]);
+        exit;
+    }
+    // Obtener una categoría por ID
+    elseif ($method === 'GET' && preg_match('#^/api/categories/(\d+)$#', $path, $matches)) {
+        $controller = new CategoryAPIController();
+        $controller->show((int)$matches[1]);
+        exit;
+    }
+    // Crear categoría
+    elseif ($method === 'POST' && $path === '/api/categories') {
+        $controller = new CategoryAPIController();
+        $controller->store();
+        exit;
+    }
+    // Actualizar categoría
+    elseif ($method === 'PUT' && preg_match('#^/api/categories/(\d+)$#', $path, $matches)) {
+        $controller = new CategoryAPIController();
+        $controller->update((int)$matches[1]);
+        exit;
+    }
+    // Eliminar categoría
+    elseif ($method === 'DELETE' && preg_match('#^/api/categories/(\d+)$#', $path, $matches)) {
+        $controller = new CategoryAPIController();
+        $controller->destroy((int)$matches[1]);
+        exit;
+    }
+
     // Captura de submit de form de items
     elseif ($method === 'POST' && $path === '/api/items') {
         $controller = new ItemAPIController();
